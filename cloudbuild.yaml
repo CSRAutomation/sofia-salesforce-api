@@ -1,0 +1,39 @@
+steps:
+# 1. Construir la imagen de Docker
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest',
+    '.'
+  ]
+
+# 2. Subir la imagen a Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest']
+
+# 3. Desplegar la nueva imagen en Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'api-salesforce-service' # El nombre de tu servicio en Cloud Run
+  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest'
+  - '--platform=managed'
+  - '--region=us-central1'
+  - '--allow-unauthenticated'
+  # Inyectar los secretos como variables de entorno
+  - '--update-secrets=SF_USERNAME=sf-prod-username:latest,SF_CONSUMER_KEY=sf-prod-consumer-key:latest,SF_DOMAIN=sf-prod-domain:latest'
+  # Montar el secreto de la clave privada como un archivo
+  - '--update-secrets=/app/server.key=sf-prod-private-key:latest'
+  # Definir la variable de entorno que apunta al archivo de la clave
+  - '--set-env-vars=SF_PRIVATE_KEY_FILE=/app/server.key'
+
+# Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
+images:
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest'
+
+# Opciones de configuración
+options:
+  # Nivel de logging para ver los detalles del build
+  logging: CLOUD_LOGGING_ONLY

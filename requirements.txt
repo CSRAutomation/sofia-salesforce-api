@@ -1,0 +1,4 @@
+Flask
+simple-salesforce
+python-dotenv
+gunicorn
