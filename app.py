@@ -104,18 +104,16 @@ def find_contact():
     Busca un contacto por nombre completo.
     Espera un JSON: {"full_name": "Nombre Apellido"}
     """
-    sf = get_salesforce_connection()
     data = request.json
     full_name = data.get('full_name')
 
     if not full_name:
         return jsonify({"status": "error", "message": "El campo 'full_name' es requerido."}), 400
 
-    # Se limpia el nombre de espacios extra. La búsqueda se hará sobre el campo
-    # compuesto 'Name' de Salesforce, que es más eficiente al estar indexado.
     full_name = full_name.strip()
 
     try:
+        sf = get_salesforce_connection()
         # Se escapa el nombre completo para usarlo de forma segura en la consulta.
         safe_full_name = _escape_soql_str(full_name) # Revertimos a la consulta SOQL original, que es más rápida para este caso.
         # Se modifica la consulta para usar el campo 'Name' en lugar de FirstName y LastName.
@@ -139,7 +137,7 @@ def find_contact():
             status_code = 404
             return jsonify(response_data), status_code
 
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce durante la búsqueda: {e.code} - {e.content}")
         return jsonify({"status": "error", "message": "Error de Salesforce.", "details": e.content}), 500
     except Exception as e:
@@ -164,7 +162,6 @@ def create_contact():
     Espera un JSON con 'LastName' o 'full_name'.
     Ej: {"full_name": "Carlos TEST API", "Email": "carlos.test@example.com"}
     """
-    sf = get_salesforce_connection()
     contact_data = request.json
 
     if not contact_data:
@@ -187,6 +184,7 @@ def create_contact():
 
     logging.info(f"Petición para crear contacto con datos: {contact_data}")
     try:
+        sf = get_salesforce_connection()
         # 2. CREACIÓN DEL CONTACTO
         # Se crea únicamente el contacto. El Flow en Salesforce se encargará de la cuenta.
         create_result = sf.Contact.create(contact_data)
@@ -239,7 +237,7 @@ def create_contact():
             logging.error(f"Error de Salesforce al crear contacto: {create_result.get('errors')}")
             return jsonify({"status": "error", "message": "Error de Salesforce al crear el contacto.", "details": create_result.get('errors')}), 500
 
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce al crear: {e.code} - {e.content}")
         return jsonify({"status": "error", "message": "Error de Salesforce.", "details": e.content}), 500
     except Exception as e:
@@ -253,7 +251,6 @@ def create_customer_service_case():
     Espera un JSON con los datos del sericio. Se requiere 'AccountId' y otros campos.
 
     """
-    sf = get_salesforce_connection()
     data = request.json
 
     if not data:
@@ -305,7 +302,8 @@ def create_customer_service_case():
 
     logging.info(f"Petición para crear Customer_Service__c con datos: {salesforce_payload}")
 
-    try: 
+    try:
+        sf = get_salesforce_connection()
         # 4. Crear el registro en salesforce
         customer_service_object = getattr(sf, 'Customer_Service__c')
         create_result = customer_service_object.create(salesforce_payload)
@@ -324,7 +322,7 @@ def create_customer_service_case():
                 "message": "Error de Salesforce al crear el registro de servicio.",
                 "details": errors
             }), 500
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce al crear Customer_Service__c: {e.code} - {e.content}")
         return jsonify({
             "status": "error", 
@@ -347,7 +345,6 @@ def verify_contact_by_dob():
     Espera un JSON: {"full_name": "Nombre Apellido", "dob": "YYYY-MM-DD"}
     """
     # Paso 1: Obtener la conexión a Salesforce y los datos de entrada.
-    sf = get_salesforce_connection()
     data = request.json
     full_name = data.get('full_name')
     dob = data.get('dob')
@@ -360,6 +357,7 @@ def verify_contact_by_dob():
     full_name = full_name.strip()
 
     try:
+        sf = get_salesforce_connection()
         # Paso 4: Validar el formato de la fecha de nacimiento.
         # SOQL requiere el formato YYYY-MM-DD para literales de fecha. Esta validación
         # previene errores de 'MALFORMED_QUERY' si el cliente envía un formato incorrecto.
@@ -398,7 +396,7 @@ def verify_contact_by_dob():
         return jsonify(response_data), status_code
 
     # Paso 8: Manejo de excepciones.
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce durante la verificación: {e.code} - {e.content}")
         return jsonify({"status": "error", "message": "Error de Salesforce.", "details": e.content}), 500
     except Exception as e:
@@ -414,7 +412,6 @@ def verify_contact_by_phone():
     Espera un JSON: {"full_name": "Nombre Apellido", "dob": "YYYY-MM-DD", "phone": "1234567890"}
     """
     # Paso 1: Obtener la conexión a Salesforce y los datos de entrada.
-    sf = get_salesforce_connection()
     data = request.json
     full_name = data.get('full_name')
     dob = data.get('dob')
@@ -428,6 +425,7 @@ def verify_contact_by_phone():
     full_name = full_name.strip()
 
     try:
+        sf = get_salesforce_connection()
         # Paso 3: Validar el formato de la fecha de nacimiento.
         try:
             datetime.datetime.strptime(dob, '%Y-%m-%d')
@@ -471,7 +469,7 @@ def verify_contact_by_phone():
             return jsonify({"status": "not_verified", "message": "No se encontró un contacto que coincida con el nombre y la fecha de nacimiento proporcionados."}), 404
     
     # Paso 7: Manejo de excepciones.
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce durante la verificación: {e.code} - {e.content}")
         return jsonify({"status": "error", "message": "Error de Salesforce.", "details": e.content}), 500
     except Exception as e:
@@ -485,7 +483,6 @@ def create_script_case():
     Espera un JSON con los datos del caso. Se requiere 'ContactId' o 'AccountId'.
     Ej: {"ContactId": "003...", "X5_0_Estado_Civil__c": "Soltero", ...}
     """
-    sf = get_salesforce_connection()
     case_data = request.json
 
     if not case_data:
@@ -507,6 +504,7 @@ def create_script_case():
 
     logging.info(f"Petición para crear Script_Case__c con datos: {salesforce_payload}")
     try:
+        sf = get_salesforce_connection()
         # Usamos getattr para acceder al objeto dinámicamente por su nombre de API.
         script_case_object = getattr(sf, 'Script_Case__c')
         create_result = script_case_object.create(salesforce_payload)
@@ -525,16 +523,31 @@ def create_script_case():
             logging.error(f"Error de Salesforce al crear Script_Case__c: {errors}")
             return jsonify({"status": "error", "message": "Error de Salesforce al crear el caso.", "details": errors}), 500
 
-    except SalesforceGeneralError as e:
+    except (SalesforceAuthenticationFailed, SalesforceGeneralError) as e:
         logging.error(f"Error de Salesforce al crear Script_Case__c: {e.code} - {e.content}")
         return jsonify({"status": "error", "message": "Error de Salesforce.", "details": e.content}), 500
     except Exception as e:
         logging.error(f"Error inesperado al crear Script_Case__c: {e}")
         return jsonify({"status": "error", "message": "Ocurrió un error inesperado."}), 500
 
+# --- Inicialización de la aplicación ---
+# En un entorno de producción como Cloud Run, es una buena práctica
+# intentar establecer la conexión al iniciar el contenedor.
+# Si la conexión falla, el contenedor no se iniciará correctamente,
+# lo que hará que el error sea evidente de inmediato en los registros de
+# Cloud Run, en lugar de fallar en la primera solicitud.
+if os.getenv('K_SERVICE'): # K_SERVICE es una variable de entorno estándar en Cloud Run
+    logging.info("Entorno de Cloud Run detectado. Intentando pre-calentar la conexión a Salesforce...")
+    try:
+        get_salesforce_connection()
+    except Exception as e:
+        # Se registra como 'critical' porque la aplicación no puede funcionar sin esta conexión.
+        logging.critical(f"FALLO CRÍTICO: No se pudo establecer la conexión inicial con Salesforce. La aplicación no puede iniciar. Error: {e}")
+        # Salir del proceso hará que el contenedor falle y se reinicie, alertando del problema.
+        sys.exit(1)
 
 if __name__ == "__main__":
-    # Inicializar la conexión al arrancar para validar credenciales
+    # Para desarrollo local, también validamos la conexión al iniciar.
     get_salesforce_connection()
     # Ejecutar la aplicación Flask. En producción, se usaría un servidor WSGI como Gunicorn.
     app.run(host='127.0.0.1', port=5000, debug=True)
