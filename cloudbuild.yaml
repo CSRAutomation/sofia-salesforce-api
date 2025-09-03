@@ -32,6 +32,22 @@ steps:
   # Establece la variable de entorno para que la aplicación sepa dónde encontrar el archivo de clave
   - '--set-env-vars=SF_PRIVATE_KEY_FILE=/secrets/sf_private_key'
   
+# 4. Escribir los secretos en los archivos
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args:
+    - '-c'
+    - |
+      # Escribir SF_USERNAME en .env
+      echo "SF_USERNAME=$$(gcloud secrets versions access latest --secret='sf-prod-username')" >> /app/secrets/.env
+      # Escribir SF_CONSUMER_KEY en .env
+      echo "SF_CONSUMER_KEY=$$(gcloud secrets versions access latest --secret='sf-prod-consumer-key')" >> /app/secrets/.env
+      # Escribir SF_DOMAIN en .env
+      echo "SF_DOMAIN=$$(gcloud secrets versions access latest --secret='sf-prod-domain')" >> /app/secrets/.env
+      # Escribir SF_PRIVATE_KEY en server.key
+      cat /secrets/sf_private_key > /app/secrets/server.key
+
+
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
