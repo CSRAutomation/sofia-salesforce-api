@@ -24,37 +24,16 @@ def access_secret_version(project_id, secret_id, version_id="latest"):
         logging.critical(f"CRITICAL: No se pudo acceder al secreto '{secret_id}' en el proyecto '{project_id}'. Error: {e}")
         raise
 
-# Para entornos de producción en Google Cloud (Cloud Run), el PROJECT_ID
-# se inyecta como una variable de entorno a través de cloudbuild.yaml.
-# Para desarrollo local, asegúrate de tener esta variable de entorno configurada:
-# export PROJECT_ID="tu-gcp-project-id"
-PROJECT_ID = os.environ.get("PROJECT_ID")
-
-if not PROJECT_ID:
-    logging.critical("CRITICAL: La variable de entorno 'PROJECT_ID' no está definida.")
-    raise ValueError("La variable de entorno 'PROJECT_ID' es requerida.")
-
-# Nombres de los secretos como están definidos en README.md
-SF_USERNAME_SECRET = "sf-prod-username"
-SF_CONSUMER_KEY_SECRET = "sf-prod-consumer-key"
-SF_PRIVATE_KEY_SECRET = "sf-prod-private-key"
-SF_DOMAIN_SECRET = "sf-prod-domain"
-
-logging.info(f"Cargando secretos desde Google Secret Manager para el proyecto '{PROJECT_ID}'...")
-SF_USERNAME = access_secret_version(PROJECT_ID, SF_USERNAME_SECRET)
-SF_CONSUMER_KEY = access_secret_version(PROJECT_ID, SF_CONSUMER_KEY_SECRET)
-SF_PRIVATE_KEY = access_secret_version(PROJECT_ID, SF_PRIVATE_KEY_SECRET)
-SF_DOMAIN = access_secret_version(PROJECT_ID, SF_DOMAIN_SECRET)
-
-
-# Se valida la existencia de las variables ANTES de intentar usarlas.
-# Si alguna falta, la aplicación fallará con un mensaje claro en los logs.
-if not all([SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY, SF_DOMAIN]):
-    logging.critical("CRITICAL: Faltan una o más variables de entorno de Salesforce (SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY, SF_DOMAIN).")
-    raise ValueError("Variables de entorno de Salesforce requeridas no están definidas.")
-
 # --- Inicialización de Flask y Conexión Singleton a Salesforce ---
 app = Flask(__name__)
+
+# Objeto singleton para almacenar la configuración y la conexión.
+# Se llenará de forma "perezosa" en la primera llamada.
+_app_config = {
+    "sf_connection": None,
+    "secrets": {}
+}
+
 sf_connection = None
 
 # -- Crea la coneccion con salesforce
@@ -65,11 +44,11 @@ def get_salesforce_connection():
     Esta función implementa el patrón singleton para la conexión a Salesforce,
     asegurando que solo se cree una instancia de conexión durante el ciclo de
     vida de la aplicación. Esto mejora el rendimiento al reutilizar la
-    conexión existente en lugar de crear una nueva para cada solicitud.
-
-    La configuración de la conexión (usuario, clave de consumidor, archivo de
-    clave privada y dominio) se obtiene de las variables de entorno.
-
+    conexión existente.
+    
+    En la primera llamada, también carga las credenciales desde Google Secret Manager.
+    Este enfoque de "carga perezosa" evita bloqueos durante el inicio de la aplicación,
+    lo cual es crucial para entornos como Cloud Run.
     Returns:
         simple_salesforce.Salesforce: La instancia de conexión a Salesforce.
 
@@ -78,15 +57,38 @@ def get_salesforce_connection():
         SalesforceGeneralError: Si ocurre un error general al conectar con la API.
         Exception: Para cualquier otro error inesperado durante la conexión.
     """
-    global sf_connection
-    if sf_connection is None:
+    global _app_config
+    if _app_config["sf_connection"] is None:
+        # Si no hay conexión, primero verificamos si necesitamos cargar los secretos.
+        if not _app_config["secrets"]:
+            logging.info("Primera ejecución: cargando secretos desde Secret Manager...")
+            PROJECT_ID = os.environ.get("PROJECT_ID")
+            if not PROJECT_ID:
+                logging.critical("CRITICAL: La variable de entorno 'PROJECT_ID' no está definida.")
+                raise ValueError("La variable de entorno 'PROJECT_ID' es requerida.")
+
+            # Nombres de los secretos
+            secret_names = {
+                "SF_USERNAME": "sf-prod-username",
+                "SF_CONSUMER_KEY": "sf-prod-consumer-key",
+                "SF_PRIVATE_KEY": "sf-prod-private-key",
+                "SF_DOMAIN": "sf-prod-domain"
+            }
+
+            for key, secret_id in secret_names.items():
+                _app_config["secrets"][key] = access_secret_version(PROJECT_ID, secret_id)
+            
+            logging.info("Todos los secretos han sido cargados exitosamente.")
+
+        # Ahora que los secretos están cargados, creamos la conexión.
         logging.info("Estableciendo nueva conexión con Salesforce...")
         try:
-            sf_connection = Salesforce(
-                username=SF_USERNAME,
-                consumer_key=SF_CONSUMER_KEY,
-                privatekey=SF_PRIVATE_KEY,
-                domain=SF_DOMAIN
+            secrets = _app_config["secrets"]
+            _app_config["sf_connection"] = Salesforce(
+                username=secrets["SF_USERNAME"],
+                consumer_key=secrets["SF_CONSUMER_KEY"],
+                privatekey=secrets["SF_PRIVATE_KEY"],
+                domain=secrets["SF_DOMAIN"]
             )
             logging.info("¡Conexión con Salesforce exitosa!")
         except SalesforceAuthenticationFailed as e:
@@ -99,7 +101,7 @@ def get_salesforce_connection():
         except Exception as e:
             logging.error(f"Error inesperado durante la conexión: {e}")
             raise
-    return sf_connection
+    return _app_config["sf_connection"]
 
 def _escape_soql_str(value: str) -> str:
     """
