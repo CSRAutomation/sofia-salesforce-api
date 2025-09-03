@@ -10,7 +10,6 @@ import re
 import logging
 
 # Cargar las variables de entorno al inicio del script.
-load_dotenv()
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

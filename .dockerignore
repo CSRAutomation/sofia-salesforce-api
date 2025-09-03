@@ -9,7 +9,3 @@ __pycache__/
 # Archivos de configuración y documentación no necesarios en la imagen
 cloudbuild.yaml
 README.md
-
-# Archivos sensibles y de entorno local que NUNCA deben estar en la imagen
-.env
-server.key
