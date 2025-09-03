@@ -3,13 +3,13 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
-    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest',
     '.'
   ]
 
 # 2. Subir la imagen a Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest']
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
 
 # 3. Desplegar la nueva imagen en Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -17,8 +17,8 @@ steps:
   args:
   - 'run'
   - 'deploy'
-  - 'api-salesforce-service' # El nombre de tu servicio en Cloud Run
-  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest'
+  - 'sofia-salesforce-api-service' # El nombre de tu servicio en Cloud Run
+  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
   - '--allow-unauthenticated'
@@ -31,7 +31,7 @@ steps:
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/api-salesforce-repo/api-salesforce:latest'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
 
 # Opciones de configuración
 options:

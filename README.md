@@ -235,13 +235,13 @@ El proyecto está configurado para despliegue continuo. Para replicar o crear un
 
 3.  **Crear Repositorio de Artefactos:** Crea un repositorio en Artifact Registry para almacenar las imágenes de Docker.
     ```bash
-    gcloud artifacts repositories create api-salesforce-repo \
+    gcloud artifacts repositories create sofia-salesforce-api-repo \
       --repository-format=docker \
       --location=us-central1
     ```
 
 #### 3. Configuración del Despliegue
-1.  **Ajustar `cloudbuild.yaml` (Opcional):** Si deseas desplegar un servicio con un nombre diferente, modifica el argumento `api-salesforce-service` en el último paso del archivo `cloudbuild.yaml`.
+1.  **Ajustar `cloudbuild.yaml` (Opcional):** Si deseas desplegar un servicio con un nombre diferente, modifica el argumento `sofia-salesforce-api-service` en el último paso del archivo `cloudbuild.yaml`.
 
 2.  **Crear Disparador de Cloud Build:**
     - En la consola de Google Cloud, ve a `Cloud Build` > `Disparadores`.
