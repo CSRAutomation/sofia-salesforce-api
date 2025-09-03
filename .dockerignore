@@ -1,11 +1,20 @@
-# Archivos de caché de Python
+
+# Ignorar directorios y archivos de desarrollo
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
 
-# Ignorar directorios y archivos de Git
-.git
+# Ignorar archivos de Git y configuración de IDE
+.git/
 .gitignore
+.idea/
+.vscode/
 
-# Archivos de configuración y documentación no necesarios en la imagen
-cloudbuild.yaml
+# Ignorar el propio archivo .dockerignore y el README
+.dockerignore
 README.md
+cloudbuild.yaml
