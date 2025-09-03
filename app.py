@@ -55,12 +55,24 @@ def get_salesforce_connection():
     if sf_connection is None:
         logging.info("Estableciendo nueva conexión con Salesforce...")
         try:
+            # Leer el contenido de la clave privada desde el archivo.
+            # Esto nos permite dar errores más claros si el archivo no existe o no se puede leer.
+            try:
+                with open(SF_PRIVATE_KEY_FILE, 'r') as key_file:
+                    private_key_content = key_file.read()
+            except FileNotFoundError:
+                logging.critical(f"CRITICAL: El archivo de clave privada '{SF_PRIVATE_KEY_FILE}' no fue encontrado. Verifica que el secreto está montado correctamente en Cloud Run.")
+                raise
+            except IOError as e:
+                logging.critical(f"CRITICAL: No se pudo leer el archivo de clave privada '{SF_PRIVATE_KEY_FILE}'. Error: {e}")
+                raise
+
+            # Usar el contenido de la clave (privatekey) en lugar de la ruta del archivo (privatekey_file).
             sf_connection = Salesforce(
                 username=SF_USERNAME,
                 consumer_key=SF_CONSUMER_KEY,
-                privatekey_file=SF_PRIVATE_KEY_FILE,
-                domain=SF_DOMAIN
-            )
+                privatekey=private_key_content,
+                domain=SF_DOMAIN)
             logging.info("¡Conexión con Salesforce exitosa!")
         except SalesforceAuthenticationFailed as e:
             # Esta excepción tiene .message en lugar de .content
@@ -69,8 +81,8 @@ def get_salesforce_connection():
         except SalesforceGeneralError as e:
             logging.error(f"Error de Salesforce al conectar: {e.code} - {e.content}")
             raise
-        except Exception as e:
-            logging.error(f"Error inesperado durante la conexión: {e}")
+        except Exception as e: # Captura otros errores, como un formato de clave inválido.
+            logging.error(f"Error inesperado durante la conexión. Podría ser un problema con el formato de la clave privada. Error: {e}")
             raise
     return sf_connection
 
