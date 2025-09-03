@@ -27,9 +27,10 @@ steps:
   - '--update-secrets=SF_USERNAME=sf-prod-username:latest'
   - '--update-secrets=SF_CONSUMER_KEY=sf-prod-consumer-key:latest'
   - '--update-secrets=SF_DOMAIN=sf-prod-domain:latest'
-  - '--update-secrets=/app/server.key=sf-prod-private-key:latest'
-  # Variable de entorno para usar la ruta del archivo secreto
-  - '--set-env-vars=SF_PRIVATE_KEY_FILE=/app/server.key'
+  # Monta el secreto de la clave privada como un archivo en un directorio dedicado /secrets
+  - '--update-secrets=/secrets/sf_private_key=sf-prod-private-key:latest'
+  # Establece la variable de entorno para que la aplicación sepa dónde encontrar el archivo de clave
+  - '--set-env-vars=SF_PRIVATE_KEY_FILE=/secrets/sf_private_key'
   
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
