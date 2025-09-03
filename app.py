@@ -1,24 +1,51 @@
 from simple_salesforce import Salesforce, SalesforceAuthenticationFailed, SalesforceGeneralError
-from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+from google.cloud import secretmanager
 import os
 import time
 import datetime
-import sys
-import threading
 import re
 import logging
-
-# Cargar las variables de entorno al inicio del script.
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Leer variables de entorno después de cargarlas
-SF_USERNAME = os.getenv("SF_USERNAME")
-SF_CONSUMER_KEY = os.getenv("SF_CONSUMER_KEY")
-SF_DOMAIN = os.getenv("SF_DOMAIN")
-SF_PRIVATE_KEY = os.getenv("SF_PRIVATE_KEY")
+# --- Carga de Secretos desde Google Secret Manager ---
+def access_secret_version(project_id, secret_id, version_id="latest"):
+    """
+    Accede al payload de una versión de secreto en Secret Manager.
+    """
+    try:
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+        response = client.access_secret_version(name=name)
+        return response.payload.data.decode("UTF-8")
+    except Exception as e:
+        logging.critical(f"CRITICAL: No se pudo acceder al secreto '{secret_id}' en el proyecto '{project_id}'. Error: {e}")
+        raise
+
+# Para entornos de producción en Google Cloud (Cloud Run), el PROJECT_ID
+# se inyecta como una variable de entorno a través de cloudbuild.yaml.
+# Para desarrollo local, asegúrate de tener esta variable de entorno configurada:
+# export PROJECT_ID="tu-gcp-project-id"
+PROJECT_ID = os.environ.get("PROJECT_ID")
+
+if not PROJECT_ID:
+    logging.critical("CRITICAL: La variable de entorno 'PROJECT_ID' no está definida.")
+    raise ValueError("La variable de entorno 'PROJECT_ID' es requerida.")
+
+# Nombres de los secretos como están definidos en README.md
+SF_USERNAME_SECRET = "sf-prod-username"
+SF_CONSUMER_KEY_SECRET = "sf-prod-consumer-key"
+SF_PRIVATE_KEY_SECRET = "sf-prod-private-key"
+SF_DOMAIN_SECRET = "sf-prod-domain"
+
+logging.info(f"Cargando secretos desde Google Secret Manager para el proyecto '{PROJECT_ID}'...")
+SF_USERNAME = access_secret_version(PROJECT_ID, SF_USERNAME_SECRET)
+SF_CONSUMER_KEY = access_secret_version(PROJECT_ID, SF_CONSUMER_KEY_SECRET)
+SF_PRIVATE_KEY = access_secret_version(PROJECT_ID, SF_PRIVATE_KEY_SECRET)
+SF_DOMAIN = access_secret_version(PROJECT_ID, SF_DOMAIN_SECRET)
+
 
 # Se valida la existencia de las variables ANTES de intentar usarlas.
 # Si alguna falta, la aplicación fallará con un mensaje claro en los logs.

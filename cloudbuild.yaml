@@ -21,6 +21,8 @@ steps:
   - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
+  # Inyecta el PROJECT_ID como variable de entorno para que la app pueda acceder a los secretos.
+  - '--set-env-vars=PROJECT_ID=$PROJECT_ID'
    #- '--allow-unauthenticated'
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
