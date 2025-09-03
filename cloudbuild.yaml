@@ -23,10 +23,9 @@ steps:
   - '--platform=managed'
   - '--region=us-central1'
   - '--allow-unauthenticated'
-  # Inyectar los secretos como variables de entorno
-  - '--update-secrets=SF_USERNAME=sf-prod-username:latest,SF_CONSUMER_KEY=sf-prod-consumer-key:latest,SF_DOMAIN=sf-prod-domain:latest'
-  # Montar el secreto de la clave privada como un archivo
-  - '--update-secrets=/app/server.key=sf-prod-private-key:latest'
+  # Inyectar todos los secretos (variables y archivos) en un solo comando.
+  # Usar --update-secrets dos veces causa que el segundo sobreescriba al primero.
+  - '--update-secrets=SF_USERNAME=sf-prod-username:latest,SF_CONSUMER_KEY=sf-prod-consumer-key:latest,SF_DOMAIN=sf-prod-domain:latest,/app/server.key=sf-prod-private-key:latest'
   # Definir la variable de entorno que apunta al archivo de la clave
   - '--set-env-vars=SF_PRIVATE_KEY_FILE=/app/server.key'
 
