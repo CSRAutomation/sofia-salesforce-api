@@ -4,13 +4,16 @@ FROM python:3.12-slim
 WORKDIR /app
 
 
-RUN mkdir /app/secrets && touch /app/secrets/.env && touch /app/secrets/server.key
-
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Copia el script de entrada y dale permisos de ejecución
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 ENV APP_MODULE app:app
 
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 "$APP_MODULE"
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]

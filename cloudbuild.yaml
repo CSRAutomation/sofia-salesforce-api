@@ -12,40 +12,24 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
 
-# 3. Desplegar la nueva imagen en Cloud Run
+# 3. Preparar el archivo service.yaml final sustituyendo la URL de la imagen
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    sed "s|IMAGE_URL|us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest|g" service.template.yaml > service.yaml
+
+# 4. Desplegar el servicio en Cloud Run usando el archivo declarativo
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
   args:
   - 'run'
-  - 'deploy'
-  - 'sofia-salesforce-api-service' # El nombre de tu servicio en Cloud Run
-  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
+  - 'services'
+  - 'replace'
+  - 'service.yaml'
   - '--platform=managed'
   - '--region=us-central1'
-  - '--allow-unauthenticated'
-  #  Subir secretos uno por uno
-  - '--update-secrets=SF_USERNAME=sf-prod-username:latest'
-  - '--update-secrets=SF_CONSUMER_KEY=sf-prod-consumer-key:latest'
-  - '--update-secrets=SF_DOMAIN=sf-prod-domain:latest'
-  # Monta el secreto de la clave privada como un archivo en un directorio dedicado /secrets
-  - '--update-secrets=/secrets/sf_private_key=sf-prod-private-key:latest'
-  # Establece la variable de entorno para que la aplicación sepa dónde encontrar el archivo de clave
-  - '--set-env-vars=SF_PRIVATE_KEY_FILE=/secrets/sf_private_key'
-  
-# 4. Escribir los secretos en los archivos
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: bash
-  args:
-    - '-c'
-    - |
-      # Escribir SF_USERNAME en .env
-      echo "SF_USERNAME=$$(gcloud secrets versions access latest --secret='sf-prod-username')" >> /app/secrets/.env
-      # Escribir SF_CONSUMER_KEY en .env
-      echo "SF_CONSUMER_KEY=$$(gcloud secrets versions access latest --secret='sf-prod-consumer-key')" >> /app/secrets/.env
-      # Escribir SF_DOMAIN en .env
-      echo "SF_DOMAIN=$$(gcloud secrets versions access latest --secret='sf-prod-domain')" >> /app/secrets/.env
-      # Escribir SF_PRIVATE_KEY en server.key
-      cat /secrets/sf_private_key > /app/secrets/server.key
 
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
