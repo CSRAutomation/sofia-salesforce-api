@@ -2,21 +2,24 @@ steps:
 
 # 1. Construir la imagen de Docker
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'us-central1-docker.pkg.dev/vertex-466215/sofia-salesforce-api-repo/sofia-salesforce-api:latest', '.']
+  args: [
+    'build',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest',
+    '.'
+  ]
 
 # 2. Subir la imagen a Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'us-central1-docker.pkg.dev/vertex-466215/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
 
 # 3. Desplegar la nueva imagen en Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  
-args:
+  args:
   - 'run'
   - 'deploy'
-  - 'sofia-salesforce-api-service'
-  - '--image=us-central1-docker.pkg.dev/vertex-466215/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
+  - 'sofia-salesforce-api-service' # El nombre de tu servicio en Cloud Run
+  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
   - '--allow-unauthenticated'
@@ -27,10 +30,10 @@ args:
   - '--update-secrets=/app/server.key=sf-prod-private-key:latest'
   # Variable de entorno para usar la ruta del archivo secreto
   - '--set-env-vars=SF_PRIVATE_KEY_FILE=/app/server.key'
-
+  
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
-- 'us-central1-docker.pkg.dev/vertex-466215/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
 
 # Opciones de configuración
 options:
