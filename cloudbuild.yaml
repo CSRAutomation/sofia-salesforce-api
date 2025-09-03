@@ -1,6 +1,7 @@
 steps:
 
 # 1. Construir la imagen de Docker
+# Se recomienda usar tags inmutables como el SHA del commit ($SHORT_SHA) en lugar de 'latest'.
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
@@ -8,19 +9,14 @@ steps:
     '.'
   ]
 
-# 2. Subir la imagen a Artifact Registry
+# 2. Subir la imagen construida a Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
 
-# 3. Preparar el archivo service.yaml final sustituyendo la URL de la imagen
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: 'bash'
-  args:
-  - '-c'
-  - |
-    sed "s|IMAGE_URL|us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest|g" service.template.yaml > service.yaml
 
-# 4. Desplegar el servicio en Cloud Run usando el archivo declarativo
+# 3. Desplegar el servicio en Cloud Run usando el archivo declarativo service.yaml
+# Este comando crea una nueva revisión del servicio. Si 'service.yaml' referencia
+# la imagen con el tag 'latest', Cloud Run obtendrá la versión más reciente de la imagen.
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
   args:
