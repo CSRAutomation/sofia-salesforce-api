@@ -1,36 +1,31 @@
 steps:
-
-# 1. Construir la imagen de Docker usando el SHA del commit como tag
-# Usar $SHORT_SHA en lugar de 'latest' es una buena práctica para tener tags inmutables y únicos.
+# 1. Construir la imagen de Docker
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
-    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:$SHORT_SHA',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest',
     '.'
   ]
 
-# 2. Subir la imagen construida a Artifact Registry
+# 2. Subir la imagen a Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:$SHORT_SHA']
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest']
 
-
-# 3. Desplegar la imagen en Cloud Run de forma imperativa
-# Este comando crea o actualiza el servicio 'sofia-salesforce-api' con la nueva imagen.
+# 3. Desplegar la nueva imagen en Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
   args:
   - 'run'
   - 'deploy'
-  - 'sofia-salesforce-api' # El nombre de tu servicio en Cloud Run
-  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:$SHORT_SHA'
+  - 'sofia-salesforce-api-service' # El nombre de tu servicio en Cloud Run
+  - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
-  #
-
+  #- '--allow-unauthenticated'
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:$SHORT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
 
 # Opciones de configuración
 options:
