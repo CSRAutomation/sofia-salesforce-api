@@ -4,7 +4,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 
-RUN touch /app/secrets/.env && touch /app/secrets/server.key
+RUN mkdir /app/secrets && touch /app/secrets/.env && touch /app/secrets/server.key
 
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
