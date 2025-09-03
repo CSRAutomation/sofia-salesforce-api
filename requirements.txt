@@ -3,3 +3,4 @@ simple-salesforce
 gunicorn==23.0.0
 Werkzeug==3.0.3
 google-cloud-secret-manager
+python-dotenv
