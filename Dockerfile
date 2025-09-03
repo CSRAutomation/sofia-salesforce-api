@@ -8,7 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ahora copia el resto de los archivos de la aplicación (incluyendo .env y server.key)
-COPY . .
+# Ahora copia solo el archivo principal de la aplicación.
+# Esto evita copiar archivos innecesarios (README, cloudbuild.yaml) o sensibles (.env, server.key).
+COPY app.py .
 
 CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]

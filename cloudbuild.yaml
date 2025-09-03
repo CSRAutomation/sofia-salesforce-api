@@ -21,6 +21,7 @@ steps:
   - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
+  - '--update-secrets=SF_USERNAME=sf-prod-username:latest,SF_CONSUMER_KEY=sf-prod-consumer-key:latest,SF_PRIVATE_KEY=sf-prod-private-key:latest,SF_DOMAIN=sf-prod-domain:latest'
   #- '--allow-unauthenticated'
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos

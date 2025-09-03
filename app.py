@@ -19,13 +19,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 SF_USERNAME = os.getenv("SF_USERNAME")
 SF_CONSUMER_KEY = os.getenv("SF_CONSUMER_KEY")
 SF_DOMAIN = os.getenv("SF_DOMAIN")
-SF_PRIVATE_KEY_FILE = os.getenv("SF_PRIVATE_KEY_FILE")
+SF_PRIVATE_KEY = os.getenv("SF_PRIVATE_KEY")
 
-with open(SF_PRIVATE_KEY_FILE, "r") as f:
-    SF_PRIVATE_KEY = f.read()
-
-if not all([SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY_FILE, SF_DOMAIN]):
-    raise ValueError("Asegúrate de que las variables de entorno SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY_FILE y SF_DOMAIN estén definidas.")
+# Se valida la existencia de las variables ANTES de intentar usarlas.
+# Si alguna falta, la aplicación fallará con un mensaje claro en los logs.
+if not all([SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY, SF_DOMAIN]):
+    logging.critical("CRITICAL: Faltan una o más variables de entorno de Salesforce (SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY, SF_DOMAIN).")
+    raise ValueError("Variables de entorno de Salesforce requeridas no están definidas.")
 
 # --- Inicialización de Flask y Conexión Singleton a Salesforce ---
 app = Flask(__name__)
@@ -59,7 +59,7 @@ def get_salesforce_connection():
             sf_connection = Salesforce(
                 username=SF_USERNAME,
                 consumer_key=SF_CONSUMER_KEY,
-                privatekey_file=SF_PRIVATE_KEY_FILE,
+                privatekey=SF_PRIVATE_KEY,
                 domain=SF_DOMAIN
             )
             logging.info("¡Conexión con Salesforce exitosa!")
