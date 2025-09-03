@@ -553,10 +553,11 @@ if os.getenv('K_SERVICE'): # K_SERVICE es una variable de entorno estándar en C
     try:
         get_salesforce_connection()
     except Exception as e:
-        # Se registra como 'critical' porque la aplicación no puede funcionar sin esta conexión.
-        logging.critical(f"FALLO CRÍTICO: No se pudo establecer la conexión inicial con Salesforce. La aplicación no puede iniciar. Error: {e}")
-        # Salir del proceso hará que el contenedor falle y se reinicie, alertando del problema.
-        sys.exit(1)
+        # No salimos del proceso. Simplemente registramos el fallo.
+        # La conexión se reintentará en la primera solicitud (gracias al patrón singleton).
+        # Esto hace que el inicio sea más resistente a problemas transitorios como el montaje de secretos o la red.
+        logging.warning(f"ADVERTENCIA: Falló el pre-calentamiento de la conexión a Salesforce. Se reintentará en la primera solicitud. Error: {e}")
+
 
 if __name__ == "__main__":
     # Para desarrollo local, también validamos la conexión al iniciar.
