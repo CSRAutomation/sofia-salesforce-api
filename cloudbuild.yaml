@@ -21,6 +21,13 @@ steps:
   - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
+  # Inyectar secretos como variables de entorno.
+  # La cuenta de servicio de Cloud Run necesita el rol "Secret Manager Secret Accessor"
+  # en el proyecto para poder acceder a estos secretos.
+  - '--set-secrets=SF_USERNAME=sf-prod-username:latest'
+  - '--set-secrets=SF_CONSUMER_KEY=sf-prod-consumer-key:latest'
+  - '--set-secrets=SF_DOMAIN=sf-prod-domain:latest'
+  - '--set-secrets=SF_PRIVATE_KEY_CONTENT=sf-prod-private-key:latest'
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:
