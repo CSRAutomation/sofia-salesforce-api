@@ -21,13 +21,6 @@ steps:
   - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/sofia-salesforce-api-repo/sofia-salesforce-api:latest'
   - '--platform=managed'
   - '--region=us-central1'
-  # Define la variable de entorno que apunta a la ruta del archivo de la clave privada.
-  # Tu app.py usa os.getenv("SF_PRIVATE_KEY_FILE") para encontrar este archivo.
-  - '--set-env-vars=SF_PRIVATE_KEY_FILE=/app/server.key'
-  # Inyecta todos los secretos en un solo comando, separados por comas.
-  # - Monta la clave privada como un archivo en /app/server.key.
-  # - Inyecta el resto de las credenciales como variables de entorno.
-  - '--set-secrets=/app/server.key=sf-prod-private-key:latest,SF_USERNAME=sf-prod-username:latest,SF_CONSUMER_KEY=sf-prod-consumer-key:latest,SF_DOMAIN=sf-prod-domain:latest'
 
 # Especifica la imagen que se acaba de construir para que esté disponible para los siguientes pasos
 images:

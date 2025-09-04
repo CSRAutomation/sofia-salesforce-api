@@ -1,28 +1,55 @@
 from simple_salesforce import Salesforce, SalesforceAuthenticationFailed, SalesforceGeneralError
-from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 import os
 import time
 import datetime
+from google.cloud import secretmanager
+import google.auth
 import sys
 import threading
 import re
 import logging
 
-# Cargar las variables de entorno al inicio del script.
-load_dotenv()
-
+project_id = "vertex-466215"
+client = secretmanager.SecretManagerServiceClient()
+parent = f"projects/{project_id}/secrets"
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Leer variables de entorno después de cargarlas
-SF_USERNAME = os.getenv("SF_USERNAME")
-SF_CONSUMER_KEY = os.getenv("SF_CONSUMER_KEY")
-SF_PRIVATE_KEY_FILE = os.getenv("SF_PRIVATE_KEY_FILE")
-SF_DOMAIN = os.getenv("SF_DOMAIN")
+# --- Lógica de Carga de Secretos desde Google Secret Manager ---
 
-if not all([SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY_FILE, SF_DOMAIN]):
-    raise ValueError("Asegúrate de que las variables de entorno SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY_FILE y SF_DOMAIN estén definidas.")
+def access_secret_version(project_id, secret_id, version_id="latest"):
+    """Accede al payload de una versión de secreto en Google Secret Manager."""
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
+
+try:
+    logging.info("Cargando secretos desde Google Secret Manager...")
+    # Autenticación y obtención del Project ID
+    try:
+        _, project_id = google.auth.default()
+        logging.info(f"Proyecto de GCP detectado automáticamente: {project_id}")
+    except (google.auth.exceptions.DefaultCredentialsError, TypeError):
+        logging.warning("No se pudieron detectar las credenciales por defecto. Usando ID de proyecto manual.")
+        project_id = "vertex-466215"  # Fallback
+
+    # Cargar cada secreto
+    SF_USERNAME = access_secret_version(project_id, "sf-prod-username")
+    SF_CONSUMER_KEY = access_secret_version(project_id, "sf-prod-consumer-key")
+    SF_DOMAIN = access_secret_version(project_id, "sf-prod-domain")
+    # Se carga el contenido de la clave, no una ruta de archivo. Es más seguro.
+    SF_PRIVATE_KEY_CONTENT = access_secret_version(project_id, "sf-prod-private-key")
+    
+    logging.info("Todas las credenciales de Salesforce se han cargado correctamente desde Secret Manager.")
+
+except Exception as e:
+    logging.critical(f"Error crítico al cargar la configuración desde Secret Manager: {e}")
+    sys.exit(1) # Detener la aplicación si no se pueden cargar los secretos
+
+if not all([SF_USERNAME, SF_CONSUMER_KEY, SF_PRIVATE_KEY_CONTENT, SF_DOMAIN]):
+    raise ValueError("Fallo al cargar una o más credenciales de Salesforce desde Secret Manager.")
 
 # --- Inicialización de Flask y Conexión Singleton a Salesforce ---
 app = Flask(__name__)
@@ -56,8 +83,8 @@ def get_salesforce_connection():
             sf_connection = Salesforce(
                 username=SF_USERNAME,
                 consumer_key=SF_CONSUMER_KEY,
-                privatekey_file=SF_PRIVATE_KEY_FILE,
-                domain=SF_DOMAIN
+                privatekey=SF_PRIVATE_KEY_CONTENT, # Se usa el contenido de la clave directamente
+                domain=SF_DOMAIN,
             )
             logging.info("¡Conexión con Salesforce exitosa!")
         except SalesforceAuthenticationFailed as e:
@@ -535,4 +562,4 @@ if __name__ == "__main__":
     
     get_salesforce_connection()
     # Ejecutar la aplicación Flask. En producción, se usaría un servidor WSGI como Gunicorn.
-    app.run(debug=True, host="0.0.0.0", port=8080)
+    app.run(debug=True, host="0.0.0.0", port=8000)

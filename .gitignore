@@ -2,3 +2,6 @@
 __pycache__
 *.env
 *.key
+
+#Archivo de pruebas para visualizar los secretros de forma local
+acceso_secreto.py
